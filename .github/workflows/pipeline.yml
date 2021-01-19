@@ -34,3 +34,9 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+            uses: ./
+      - name: Run with setup-python 3.6
+        with:
+          python-version: 3.6
+      - name: Verify 3.6
+        run: python
