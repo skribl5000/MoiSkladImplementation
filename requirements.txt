@@ -1,6 +1,5 @@
 numpy
 pandas
 requests
-base64
 pytest
 tqdm
