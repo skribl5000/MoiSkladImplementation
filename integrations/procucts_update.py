@@ -2,11 +2,14 @@ import os
 import requests
 import json
 from tqdm import tqdm
-
-from libs.pywb.nomeclature import WBNomenclature
-from libs.pymysklad.pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
-    get_all_multi_product_codes, get_all_product_codes, get_all_single_product_codes, get_product_meta_by_code
-
+try:
+    from libs.pywb.nomeclature import WBNomenclature
+    from libs.pymysklad.pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
+        get_all_multi_product_codes, get_all_product_codes, get_all_single_product_codes, get_product_meta_by_code
+except ImportError:
+    from pywb.nomeclature import WBNomenclature
+    from pymysklad.pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
+        get_all_multi_product_codes, get_all_product_codes, get_all_single_product_codes, get_product_meta_by_code
 
 class ProductCreator:
     DEFAULT_META_DICT = {
