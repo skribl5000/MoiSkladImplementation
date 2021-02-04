@@ -30,4 +30,4 @@ jobs:
         MS_TOKEN: ${{ secrets.MS_TOKEN }}
         WB_TOKEN: ${{ secrets.WB_TOKEN }}
         SUPPLIER_ID: ${{ secrets.SUPPLIER_ID }}
-      run: python ./integrations/products_update.py
+      run: python ./integrations/procucts_update.py
