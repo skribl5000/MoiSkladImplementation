@@ -7,8 +7,8 @@ try:
     from libs.pymysklad.pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
         get_all_multi_product_codes, get_all_product_codes, get_all_single_product_codes, get_product_meta_by_code
 except ImportError:
-    from pywb.nomeclature import WBNomenclature
-    from pymysklad.pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
+    from nomeclature import WBNomenclature
+    from pymyskald import MSDict, get_product_attributes, MSVariants, MSUserDict, \
         get_all_multi_product_codes, get_all_product_codes, get_all_single_product_codes, get_product_meta_by_code
 
 class ProductCreator:
