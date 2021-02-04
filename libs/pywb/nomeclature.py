@@ -6,8 +6,9 @@ import pandas as pd
 class WBNomenclature:
     AUTH_LOGIN_URL = 'https://content-suppliers.wildberries.ru/passport/api/v2/auth/login'
     CARDS_URL = 'https://content-suppliers.wildberries.ru/card/list'
+
     def __init__(self, token, supplier_id):
-        self.cookies = get_cookies(token)
+        self.cookies = self.get_cookies(token)
         self.supplier_id = supplier_id
 
     def get_cookies(self, token):
@@ -41,7 +42,6 @@ class WBNomenclature:
             }
             ),
             cookies=self.cookies)
-
         cards = r.json()['result']['cards']
 
         data = []
@@ -115,3 +115,32 @@ class WBNomenclature:
                 result.append(value)
 
         return '/'.join(result)
+
+    def get_card_photo_links(self) -> dict:
+        """Returns dict like {'card_key':[photo_link1, photo_link2]}"""
+        return dict()
+
+    def get_single_items(self):
+        df_nom = self.get_cards_cleaned_dataframe()
+        df_single_items = df_nom[df_nom['Артикул поставщика'].isnull()].fillna('')
+        df_single_items['Key'] = df_single_items['Артикул цвета'] + '_' + df_single_items['Баркод']
+        return df_single_items
+
+    def get_multi_items(self):
+        df_nom = self.get_cards_cleaned_dataframe()
+        df_multi_items = df_nom[~df_nom['Артикул поставщика'].isnull()].fillna('')
+        df_multi_items['Key'] = df_multi_items["Артикул поставщика"] + '_' \
+                                + df_multi_items["Артикул цвета"] \
+                                + '_' + df_multi_items['Размер на бирке'] \
+                                + '_' + df_multi_items['Баркод']
+        return df_multi_items
+
+    def get_multi_items_filtered_by_keys(self, keys):
+        df_multi_items = self.get_multi_items()
+        new_multi_items = df_multi_items[~df_multi_items['Key'].isin(keys)]
+        return new_multi_items
+
+    def get_single_items_filtered_by_keys(self, keys):
+        df_single_items = self.get_single_items()
+        new_single_items = df_single_items[~df_single_items['Key'].isin(keys)]
+        return new_single_items

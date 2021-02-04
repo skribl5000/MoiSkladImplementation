@@ -3,3 +3,5 @@ pandas
 json
 requests
 base64
+pytest
+tqdm
