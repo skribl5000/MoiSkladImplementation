@@ -24,4 +24,8 @@ jobs:
     - name: Display Python version
       run: python test.py
     - name: Run WB-MS syncronization
-      run: python ./integration/products_update.py
+      env:
+        MS_TOKEN: ${{ secrets.MS_TOKEN }}
+        WB_TOKEN: ${{ secrets.WB_TOKEN }}
+        SUPPLIER_ID: ${{ secrets.SUPPLIER_ID }}
+      run: python integration/products_update.py
