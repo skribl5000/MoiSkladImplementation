@@ -12,8 +12,8 @@ class MSResponseItem:
     def get_meta(self):
         return self.data.get('meta', None)
 
-    def get_attribute(self):
-        return self.data.get('attr', None)
+    def get_attribute(self, attr):
+        return self.data.get(attr, None)
 
 
 class MSResponse:
