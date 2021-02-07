@@ -338,3 +338,76 @@ class MSVariants(MSDict):
             if len(values) == 0:
                 return result
         return result
+
+
+def get_all_single_products_code_id_info(token) -> dict:
+    """
+    :param token: moisklad_token
+    :return: dict where: key - code, value - id.
+    """
+    products_result = {}
+
+    request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/product?offset=0'
+    response = requests.get(request_url, headers={
+        'Authorization': f'Basic {token}'
+    })
+
+    products = response.json().get('rows', None)
+    if products is None:
+        return dict()
+
+    for product in products:
+        if product.get('variantsCount', 0) == 0:
+            products_result[product['code']] = product['id']
+
+    size = response.json()['meta']['size']
+    if size > 1000:
+        for offset in range(1000, size, 1000):
+            request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/product?offset={offset}'
+            response = requests.get(request_url, headers={
+                'Authorization': f'Basic {token}'
+            })
+
+            products = response.json().get('rows', None)
+            if products is None:
+                return products_result
+
+            for product in products:
+                if product.get('variantsCount', 0) == 0:
+                    products_result[product['code']] = product['id']
+
+    return products_result
+
+
+def get_all_multi_product_info(token) -> dict:
+    """
+    :param token: moisklad_token
+    :return: dict as {key:tuple} where: key - code, value[0] - id, value[1] - product_meta
+    """
+    variant_code_id_meta = dict()
+    request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/variant?offset=0'
+    response = requests.get(request_url,
+                            headers={'Authorization': f'Basic {token}'})
+
+    variants = response.json().get('rows', None)
+    if variants is None:
+        return dict()
+
+    for variant in variants:
+        variant_code_id_meta[variant['code']] = variant['id']
+
+    size = response.json()['meta']['size']
+    if size > 1000:
+        for offset in range(1000, size, 1000):
+            request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/variant?offset={offset}'
+            response = requests.get(request_url,
+                                    headers={'Authorization': f'Basic {token}'})
+
+            variants = response.json().get('rows', None)
+            if variants is None:
+                return variant_code_id_meta
+
+            for variant in variants:
+                variant_code_id_meta[variant['code']] = variant['id']
+
+    return variant_code_id_meta

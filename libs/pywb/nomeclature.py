@@ -66,7 +66,7 @@ class WBNomenclature:
         new_columns = ['barcode', 'Бренд', 'vendorCode', 'object',
                        'Заголовок', 'countryProduction', 'Размер',
                        'Тнвэд', 'Розница', 'Комплектация', 'Основной цвет',
-                       'supplierVendorCode', 'createdAt', 'Описание']
+                       'supplierVendorCode', 'createdAt', 'Описание', 'Фото']
 
         columns_mapping = {'barcode': 'Баркод',
                            'Бренд': 'Бренд',
@@ -85,6 +85,7 @@ class WBNomenclature:
         df = df.filter(items=new_columns)
         df = df.rename(columns=columns_mapping)
         df = df.fillna('')
+
         return df
 
     def get_all_params(self, item):
@@ -93,7 +94,10 @@ class WBNomenclature:
             for key, value in item.items():
                 if isinstance(value, list) and key == 'addin':
                     for field in value:
-                        field_value = self.get_values_from_params(field['params'])
+                        if field['type'] == 'Фото':
+                            field_value = self.get_photos_from_params(field['params'])
+                        else:
+                            field_value = self.get_values_from_params(field['params'])
                         item_data[field['type']] = field_value if field_value is not None else ''
                 elif isinstance(value, list):
                     item_data.update(self.get_all_params(value))
@@ -107,6 +111,15 @@ class WBNomenclature:
         return item_data
 
     @staticmethod
+    def get_photos_from_params(params):
+        result = []
+        for item in params:
+            value = item.get('value')
+            if value:
+                result.append(value)
+        return ';'.join(result)
+
+    @staticmethod
     def get_values_from_params(params):
         result = []
         for item in params:
@@ -116,19 +129,16 @@ class WBNomenclature:
 
         return '/'.join(result)
 
-    def get_card_photo_links(self) -> dict:
-        """Returns dict like {'card_key':[photo_link1, photo_link2]}"""
-        return dict()
 
     def get_single_items(self):
         df_nom = self.get_cards_cleaned_dataframe()
-        df_single_items = df_nom[df_nom['Артикул поставщика'].isnull()].fillna('')
+        df_single_items = df_nom[df_nom['Артикул поставщика'] == '']
         df_single_items['Key'] = df_single_items['Артикул цвета'] + '_' + df_single_items['Баркод']
         return df_single_items
 
     def get_multi_items(self):
         df_nom = self.get_cards_cleaned_dataframe()
-        df_multi_items = df_nom[~df_nom['Артикул поставщика'].isnull()].fillna('')
+        df_multi_items = df_nom[df_nom['Артикул поставщика'] != '']
         df_multi_items['Key'] = df_multi_items["Артикул поставщика"] + '_' \
                                 + df_multi_items["Артикул цвета"] \
                                 + '_' + df_multi_items['Размер на бирке'] \
@@ -144,3 +154,4 @@ class WBNomenclature:
         df_single_items = self.get_single_items()
         new_single_items = df_single_items[~df_single_items['Key'].isin(keys)]
         return new_single_items
+
