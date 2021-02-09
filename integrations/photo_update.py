@@ -122,7 +122,7 @@ def main():
         request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/variant/{variant_id}/images'
 
         exists_images = requests.get(request_url, headers={
-            'Authorization': 'Basic a3dvcmtAYXJteWxhc3ZlbnR1cmFzOlF3ZXJ0eTEyMw=='}).json()
+            'Authorization': f'Basic {ms_token}'}).json()
         exists_images = exists_images.get('rows', [])
         exists_images_filenames = [image.get('filename', '') for image in exists_images]
         product_images = [image for image in key_photo_dict[code] if image.filename not in exists_images_filenames]
@@ -131,7 +131,7 @@ def main():
             request_data = {"filename": image.filename,
                             "content": image.file_data.decode('utf-8')}
             r = requests.post(request_url, headers={
-                'Authorization': 'Basic a3dvcmtAYXJteWxhc3ZlbnR1cmFzOlF3ZXJ0eTEyMw==',
+                'Authorization': f'Basic {ms_token}',
                 'Content-type': 'Application/json'
             }, data=json.dumps(request_data))
 
