@@ -20,7 +20,11 @@ jobs:
         # Optional - x64 or x86 architecture, defaults to x64
         architecture: 'x64'
     # You can test your matrix by printing the current Python version
-    - name: Run wb photo integration job
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+    - name: Run stores integration
       env:
         MS_TOKEN: ${{ secrets.MS_TOKEN }}
       run: python ./integrations/stores_update.py
