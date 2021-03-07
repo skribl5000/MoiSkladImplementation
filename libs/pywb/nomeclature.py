@@ -9,6 +9,7 @@ class WBNomenclature:
 
     def __init__(self, token, supplier_id):
         self.cookies = self.get_cookies(token)
+        self.token = token
         self.supplier_id = supplier_id
 
     def get_cookies(self, token):
@@ -27,32 +28,48 @@ class WBNomenclature:
         return dict(r.cookies)
 
     def get_cards(self) -> list:
-        r = requests.post(
-            self.CARDS_URL,
-            headers={
-                'Content-Type': 'Application/json',
-                'Accept': 'Application/json'
-            },
-            data=json.dumps({
-                "id": 16041810,
-                "jsonrpc": "2.0",
-                "params": {
-                    "supplierID": self.supplier_id,
-                }
-            }
-            ),
-            cookies=self.cookies)
-        cards = r.json()['result']['cards']
+        counter = 0
+        all_cards = []
+        while True:
+            BATCH_SIZE = 100
+            cook = self.cookies
 
-        data = []
-        for card in cards:
-            for item in card['nomenclatures']:
-                for variant in item['variations']:
-                    item_data = self.get_all_params(card)
-                    item_data.update(self.get_all_params(item))
-                    item_data.update(self.get_all_params(variant))
-                    data.append(item_data)
-        return data
+            r = requests.post(
+                'https://content-suppliers.wildberries.ru/card/list',
+                headers={
+                    'Content-Type': 'Application/json',
+                    'Accept': 'Application/json'
+                },
+                data=json.dumps({
+                    "id": 2282282,
+                    "jsonrpc": "2.0",
+                    "params": {
+                        "query": {
+                            "limit": BATCH_SIZE,
+                            "offset": counter
+                        },
+                        "supplierID": self.supplier_id
+                    }
+                }
+                ),
+                cookies=cook)
+
+            counter += BATCH_SIZE
+
+            cards = r.json()['result']['cards']
+
+            data = []
+            for card in cards:
+                for item in card['nomenclatures']:
+                    for variant in item['variations']:
+                        item_data = self.get_all_params(card)
+                        item_data.update(self.get_all_params(item))
+                        item_data.update(self.get_all_params(variant))
+                        data.append(item_data)
+            all_cards += data
+            if len(cards) < BATCH_SIZE:
+                break
+        return all_cards
 
     def get_cards_dataframe(self) -> pd.DataFrame:
         data = self.get_cards()
