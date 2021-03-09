@@ -3,7 +3,7 @@ name: Nomenclature integration
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '*/45 * * * *'
+    - cron:  '0 */2 * * *'
 
 
 jobs:
