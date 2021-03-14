@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
+import time
+
 
 class WBConnector:
     BASE_API_URL = 'https://suppliers-stats.wildberries.ru/api/v1/supplier/'
@@ -12,7 +14,9 @@ class WBConnector:
     def _collect_url(self, request_object):
         return self.BASE_API_URL + request_object
 
-    def get_data_dict(self, date_from, params={}):
+    def get_data_dict(self, date_from, params=None):
+        if params is None:
+            params = dict()
         if isinstance(date_from, datetime):
             date_from = self.format_date(date_from)
 
@@ -22,9 +26,15 @@ class WBConnector:
         params.update(self.params)
         params.update({'dateFrom': date_from})
 
+        for i in range(10):
+            try:
+                response = requests.get(self.request_url, params=params)
+                result = response.json()
+                return result
+            except ValueError as e:
+                print(f'Fail to get json, retrying... {i}')
+                time.sleep(5)
 
-        response = requests.get(self.request_url, params=params)
-        return response.json()
 
     def get_data_df(self, date_from, params={}):
         response_dict = self.get_data_dict(date_from, params=params)

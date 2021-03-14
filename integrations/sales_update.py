@@ -11,6 +11,11 @@ wb_token_64 = os.getenv('WB_TOKEN_64')
 
 def get_reporting_date_by_gap(days: int) -> str:
     reporting_date = datetime.today() - timedelta(days=days)
+
+    #FIXME: temporary solution for the beginning of usage.
+    if reporting_date < datetime(2021, 3, 14):
+        reporting_date = datetime(2021, 3, 14)
+
     pattern = '%Y-%m-%d'
     return reporting_date.strftime(pattern)
 
@@ -143,7 +148,6 @@ def get_request_data_for_sale(sale_row, token):
         "applicable": False,
         "vatEnabled": True,
         "vatIncluded": True,
-        "applicable": True,
         "positions": [
             {
                 "quantity": sale_row['quantity'],
@@ -207,7 +211,6 @@ for index, row in df_sales.iterrows():
         headers={'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
         r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
 
-    print(1)
     if r.status_code != 200:
         error_barcodes.add(row['barcode'])
 print('Barcodes was not found:')
