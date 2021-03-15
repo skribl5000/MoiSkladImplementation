@@ -145,7 +145,7 @@ def get_request_data_for_sale(sale_row, token):
         },
         "code": f"{sale_row['saleID']}",
         "moment": f"{sale_row['date']}",
-        "applicable": False,
+        "applicable": True,
         "vatEnabled": True,
         "vatIncluded": True,
         "positions": [
