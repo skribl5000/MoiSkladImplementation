@@ -200,7 +200,8 @@ df_sales = df_sales[(~df_sales['saleID'].isin(exists_sales))&(~df_sales['saleID'
 
 error_barcodes = set()
 for index, row in df_sales.iterrows():
-    if 'R' in row['saleID'] and row['saleID'] not in exists_returns:
+    if ('R' in row['saleID'] or 'D' in row['saleID']) and int(row['quantity']) < 0\
+            and row['saleID'] not in exists_returns:
         request_data = get_return_request_data(row, ms_token)
         request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/salesreturn'
         headers={'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
@@ -208,7 +209,7 @@ for index, row in df_sales.iterrows():
     else:
         request_data = get_request_data_for_sale(row, ms_token)
         request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/demand'
-        headers={'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
+        headers = {'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
         r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
 
     if r.status_code != 200:
