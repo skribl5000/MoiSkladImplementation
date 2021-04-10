@@ -65,7 +65,12 @@ class WBNomenclature:
                         item_data = self.get_all_params(card)
                         item_data.update(self.get_all_params(item))
                         item_data.update(self.get_all_params(variant))
-                        data.append(item_data)
+                        if len(variant['barcodes']) != 0:
+                            for barcode in variant['barcodes']:
+                                item_data['barcode'] = barcode
+                                data.append(item_data)
+                        else:
+                            data.append(item_data)
             all_cards += data
             if len(cards) < BATCH_SIZE:
                 break
