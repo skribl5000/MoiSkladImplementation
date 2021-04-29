@@ -56,7 +56,7 @@ class ProductCreator:
 
         request_data = {
             "name": row['Артикул цвета'] + ' ' + row['Бренд'] + ' ' + row['Предмет'],
-            "code": row['Артикул цвета'] + '_' + row['Баркод'],
+            "code": row['Key'],
             "article": row['Артикул цвета'],
             "externalCode": row['Артикул цвета'],
             "description": row['Описание'],
@@ -115,7 +115,7 @@ class ProductCreator:
 
         request_data = {
             "name": row['Артикул поставщика'] + ' ' + row['Бренд'] + ' ' + row['Предмет'],
-            "code": row['Артикул поставщика'] + '_' + row['Баркод'],
+            "code": row['Артикул поставщика'] + '_base',
             "externalCode": row['Артикул поставщика'],
             "description": row['Описание'],
             "article": row['Артикул поставщика'],
@@ -186,8 +186,7 @@ class ProductCreator:
 
         if len(variants) > 0:
             request_data["characteristics"] = variants
-            request_data["code"] = row["Артикул поставщика"] + '_' + row["Артикул цвета"] + '_' + row[
-                'Размер на бирке'] + '_' + row['Баркод']
+            request_data["code"] = row['Key']
 
         headers = {
             'Content-Type': 'Application/json',
@@ -206,7 +205,6 @@ def main():
 
     ms_auth = f'Basic {ms_token}'
     nom = WBNomenclature(wb_token, supplier_id)
-
     print('Get meta data from MS')
     # TODO: функционал получения айдишников по имени, хардкод - плохо.
     brand_dict_id = '3f3169c7-600f-11eb-0a80-069d0001bb3c'
@@ -215,6 +213,7 @@ def main():
     producer_countries_dict = MSUserDict(producer_country_dict_id, ms_token)
 
     product_attrs = get_product_attributes(ms_token)
+
     color_meta = product_attrs.find_item_by_attribute_value('name', 'Основной цвет').get_meta()
     size_meta = product_attrs.find_item_by_attribute_value('name', 'Размер').get_meta()
     brand_meta = product_attrs.find_item_by_attribute_value('name', 'Бренд').get_meta()
@@ -267,12 +266,13 @@ def main():
         df_item = new_multi_items[new_multi_items['Артикул поставщика'] == article]
         item_row = df_item.iloc[0]
 
-        if item_row['Артикул поставщика'] in product_codes:
-            product_meta = get_product_meta_by_code(item_row['Артикул поставщика'], ms_token)
+        if item_row['Артикул поставщика'] + '_base' in product_codes:
+            product_meta = get_product_meta_by_code(item_row['Артикул поставщика'] + '_base', ms_token)
         else:
             r = creator.upload_base_item_from_nom_row(item_row, brands_map)
             if 'errors' in r.json():
                 print(f'error to upload row {item_row}')
+                print(r.text)
                 print(r.json()['errors'])
                 continue
 
@@ -280,6 +280,9 @@ def main():
             product_meta = product['meta']
 
         for index, row in df_item.iterrows():
+            if row['Баркод'] == '':
+                print(f'Пустой баркод у {row["Артикул цвета"]}. Предмет не создан')
+                continue
             r = creator.add_modification_to_product(product_meta, row, char_dict)
             if r.status_code != 200:
                 raise Exception(str(r.json()))

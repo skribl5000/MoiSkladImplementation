@@ -67,8 +67,12 @@ class WBNomenclature:
                         item_data.update(self.get_all_params(variant))
                         if len(variant['barcodes']) != 0:
                             for barcode in variant['barcodes']:
-                                item_data['barcode'] = barcode
-                                data.append(item_data)
+
+                                # item_data['barcode'] = barcode
+                                i_d = item_data.copy()
+                                i_d['barcode'] = barcode
+                                data.append(i_d)
+                                # data.append(item_data)
                         else:
                             data.append(item_data)
             all_cards += data
@@ -82,13 +86,15 @@ class WBNomenclature:
 
     def get_cards_cleaned_dataframe(self) -> pd.DataFrame:
         df = self.get_cards_dataframe()
-
+        df = df.drop_duplicates()
+        df.to_excel('dbg.xlsx', index=False)
         df['Розница'] = 0
+        df['chrtId'] = df['chrtId'].astype(str)
 
         new_columns = ['barcode', 'Бренд', 'vendorCode', 'object',
                        'Заголовок', 'countryProduction', 'Размер',
                        'Тнвэд', 'Розница', 'Комплектация', 'Основной цвет',
-                       'supplierVendorCode', 'createdAt', 'Описание', 'Фото']
+                       'supplierVendorCode', 'createdAt', 'Описание', 'Фото', 'chrtId']
 
         columns_mapping = {'barcode': 'Баркод',
                            'Бренд': 'Бренд',
@@ -102,7 +108,8 @@ class WBNomenclature:
                            'Комплектация': 'Комплектация',
                            'Основной цвет': 'Цвет',
                            'supplierVendorCode': 'Артикул поставщика',
-                           'createdAt': 'Created'}
+                           'createdAt': 'Created',
+                           }
 
         df = df.filter(items=new_columns)
         df = df.rename(columns=columns_mapping)
@@ -155,16 +162,13 @@ class WBNomenclature:
     def get_single_items(self):
         df_nom = self.get_cards_cleaned_dataframe()
         df_single_items = df_nom[df_nom['Артикул поставщика'] == '']
-        df_single_items['Key'] = df_single_items['Артикул цвета'] + '_' + df_single_items['Баркод']
+        df_single_items['Key'] = df_single_items['chrtId'] + '_' + df_single_items['Баркод']
         return df_single_items
 
     def get_multi_items(self):
         df_nom = self.get_cards_cleaned_dataframe()
         df_multi_items = df_nom[df_nom['Артикул поставщика'] != '']
-        df_multi_items['Key'] = df_multi_items["Артикул поставщика"] + '_' \
-                                + df_multi_items["Артикул цвета"] \
-                                + '_' + df_multi_items['Размер на бирке'] \
-                                + '_' + df_multi_items['Баркод']
+        df_multi_items['Key'] = df_multi_items['chrtId'] + '_' + df_multi_items['Баркод']
         return df_multi_items
 
     def get_multi_items_filtered_by_keys(self, keys):
@@ -176,4 +180,3 @@ class WBNomenclature:
         df_single_items = self.get_single_items()
         new_single_items = df_single_items[~df_single_items['Key'].isin(keys)]
         return new_single_items
-

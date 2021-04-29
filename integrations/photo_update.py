@@ -72,11 +72,10 @@ def main():
 
     logging.info('Get nomenclature from WB')
     df_single_items = nom.get_single_items()
-    df_single_items['Key'] = df_single_items['Артикул цвета'] + '_' + df_single_items['Баркод']
+    df_single_items['Key'] = df_single_items['chrtId'] + '_' + df_single_items['Баркод']
 
     df_multi_items = nom.get_multi_items()
-    df_multi_items['Key'] = df_multi_items["Артикул поставщика"] + '_' + df_multi_items["Артикул цвета"] + \
-                            '_' + df_multi_items['Размер на бирке'] + '_' + df_multi_items['Баркод']
+    df_multi_items['Key'] = df_multi_items['chrtId'] + '_' + df_multi_items['Баркод']
 
     df_s = df_single_items[['Key', 'Фото']]
     df_m = df_multi_items[['Key', 'Фото']]
@@ -85,6 +84,7 @@ def main():
     if len(df_ph.Key) == len(set(df_ph.Key)):
         logging.info('Keys are unique')
     else:
+        df_ph = df_ph.drop_duplicates()
         logging.warning('Duplicates in keys')
 
     key_photo_dict_all = get_code_photo_dict_from_df_ph(df_ph)
