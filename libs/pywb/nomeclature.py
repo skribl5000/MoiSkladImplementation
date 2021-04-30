@@ -87,7 +87,6 @@ class WBNomenclature:
     def get_cards_cleaned_dataframe(self) -> pd.DataFrame:
         df = self.get_cards_dataframe()
         df = df.drop_duplicates()
-        df.to_excel('dbg.xlsx', index=False)
         df['Розница'] = 0
         df['chrtId'] = df['chrtId'].astype(str)
 
