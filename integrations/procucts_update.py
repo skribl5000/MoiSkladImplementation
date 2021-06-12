@@ -285,7 +285,10 @@ def main():
                 continue
             r = creator.add_modification_to_product(product_meta, row, char_dict)
             if r.status_code != 200:
-                raise Exception(str(r.json()))
+                if product_meta is None:
+                    print(f'Product meta is None у {row["Артикул цвета"]}. Предмет не создан')
+                else:
+                    raise Exception(str(r.json()))
 
 if __name__ == "__main__":
     main()
