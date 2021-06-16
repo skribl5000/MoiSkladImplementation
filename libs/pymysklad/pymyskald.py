@@ -302,7 +302,7 @@ def get_all_multi_product_codes(auth) -> list:
 
 
 def get_product_meta_by_code(product_code, token):
-    request_url = urllib.parse.quote_plus(f'https://online.moysklad.ru/api/remap/1.2/entity/product?filter=code={product_code}')
+    request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/product?filter=code={urllib.parse.quote_plus(product_code)}'
     response = requests.get(request_url, headers={'Authorization': f'Basic {token}'})
     response_dict = response.json()
     if response_dict.get('meta', None) is not None and response_dict['meta'].get('size', 0) > 0:
