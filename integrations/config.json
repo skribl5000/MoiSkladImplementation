@@ -1,0 +1,30 @@
+{ "ORGANIZATIONS": {
+  "DEFAULT": {
+    "href": "https://online.moysklad.ru/api/remap/1.2/entity/organization/82b868f6-58a3-11eb-0a80-022e004085fd",
+    "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/organization/metadata",
+    "type": "organization",
+    "mediaType": "application/json",
+    "uuidHref": "https://online.moysklad.ru/app/#mycompany/edit?id=82b868f6-58a3-11eb-0a80-022e004085fd"
+  }
+  },
+  "AGENTS": {
+    "WBAgent": {
+      "href": "https://online.moysklad.ru/api/remap/1.2/entity/counterparty/82b97cc6-58a3-11eb-0a80-022e00408602",
+      "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/counterparty/metadata",
+      "type": "counterparty",
+      "mediaType": "application/json",
+      "uuidHref": "https://online.moysklad.ru/app/#company/edit?id=82b97cc6-58a3-11eb-0a80-022e00408602"
+    }
+  },
+  "MS_WAREHOUSES": {
+    "WB_FBO": {
+        "href": "https://online.moysklad.ru/api/remap/1.2/entity/store/96fc2b3f-5905-11eb-0a80-050f00464994",
+        "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/store/metadata",
+        "type": "store",
+        "mediaType": "application/json",
+        "uuidHref": "https://online.moysklad.ru/app/#warehouse/edit?id=96fc2b3f-5905-11eb-0a80-050f00464994"
+    }
+  },
+  "CURRENCIES":{
+  }
+}

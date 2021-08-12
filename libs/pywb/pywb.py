@@ -44,3 +44,4 @@ class WBConnector:
     def format_date(date):
         pattern = '%Y-%m-%d'
         return date.strftime(pattern)
+

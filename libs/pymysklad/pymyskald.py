@@ -5,6 +5,7 @@ from exceptions import *
 from collections import Iterable
 
 import urllib
+from functools import lru_cache
 
 class MSResponseItem:
     def __init__(self, item_data: dict):
@@ -154,6 +155,45 @@ class MSDict:
 
         new_item = self.create_item_by_name(item_name)
         return new_item
+
+    def find_by_field(self, field, value, exact_search=False):
+        headers = {
+            'Content-Type': 'Application/json',
+            'Authorization': self.auth,
+        }
+        if exact_search:
+            request_url = f'{self.URL}?filter={field}={value}'
+        else:
+            request_url = f'{self.URL}?filter={field}~{value}'
+        r = requests.get(request_url, headers=headers)
+        try:
+            return r.json().get('rows', [])
+        except Exception as e:
+            print(str(e))
+            return []
+
+    def get_all_codes(self, batch_size=100):
+        r = requests.get(self.URL, headers={'Authorization': self.auth})
+        response_data = r.json()
+        size = response_data['meta']['size']
+        total = batch_size
+
+        codes = [item['code'] for item in response_data.json().get('rows', [])]
+
+        while total < size:
+            r = requests.get(f'{self.URL}?limit={batch_size}&offset={total}',
+                             headers={'Authorization': self.auth})
+            response_data = r.json()
+            codes += [item['code'] for item in response_data.json().get('rows', [])]
+            total += batch_size
+
+        return codes
+
+    def create(self, request_data):
+        r = requests.post(self.URL,
+                          headers={'Authorization': self.auth, 'Content-Type': 'Application/json'},
+                          json=request_data)
+        return r
 
 
 class MSAttributesList(MSDict):
@@ -411,3 +451,80 @@ def get_all_multi_product_info(token) -> dict:
                 variant_code_id_meta[variant['code']] = variant['id']
 
     return variant_code_id_meta
+
+
+@lru_cache(50)
+def get_item_by_barcode_id(barcode, token):
+    product_dict = MSDict('product', token)
+    variant_dict = MSDict('variant', token)
+
+    products = product_dict.find_by_field('code', f'{barcode}')
+    if len(products) >= 1:
+        if len(products) > 1:
+            print(f'TOO MUCH PRODUCTS BY BARCODE {barcode}, got first.')
+        return products[0]
+
+    variants = variant_dict.find_by_field('code', f'{barcode}')
+    if len(variants) >= 1:
+        if len(variants) > 1:
+            print(f'TOO MUCH PRODUCTS BY BARCODE {barcode}, got first.')
+        return variants[0]
+
+    print(f'BARCODE {barcode} NOT FOUND!')
+    return None
+
+
+def get_barcode_meta(barcode, token):
+    item = get_item_by_barcode_id(barcode, token)
+    if item is None:
+        return
+
+    meta = item.get('meta')
+    return meta
+
+def get_ms_stocks_by_store_id(store_id, ms_token):
+    def get_stock_from_data(data):
+        count = data['stockByStore'][0]['stock']
+        product_meta = data['meta']['href']
+        r = requests.get(product_meta, headers=ms_headers)
+        product_data = r.json()
+        code = product_data['code']
+        if 'base' in code:
+            print('base item')
+            return None
+
+        barcodes = product_data['barcodes']
+        if len(barcodes) > 0 and 'ean13' in barcodes[0]:
+            return {barcodes[0]['ean13']: int(count)}
+
+    limit = 1000
+
+    STORE_URL = f'https://online.moysklad.ru/api/remap/1.2/entity/store/{store_id}'
+    ms_request_url = 'https://online.moysklad.ru/api/remap/1.2/report/stock/bystore'
+    ms_headers = {'Authorization': f'Basic {ms_token}'}
+    ms_params = {'filter': f'store={STORE_URL}',
+                 'limit': limit,
+                 'offset': 0
+                 }
+    r_ms = requests.get(ms_request_url, headers=ms_headers, params=ms_params)
+
+    if r_ms.status_code != 200:
+        print('МС не отдал остатки!')
+
+    all_ms_stocks = r_ms.json()['rows']
+
+    while ms_params['limit'] + ms_params['offset'] < r_ms.json()['meta']['size']:
+        ms_params['offset'] += limit
+        r_ms = requests.get(ms_request_url, headers=ms_headers, params=ms_params)
+        if r_ms.status_code != 200:
+            print('МС не отдал остатки!')
+            break
+
+        all_ms_stocks += r_ms.json()['rows']
+    ms_stocks = {}
+    for stock_json in all_ms_stocks:
+        stock = get_stock_from_data(stock_json)
+        if stock is not None:
+            ms_stocks = {**ms_stocks, **stock}
+
+    return {barcode: count for barcode, count in ms_stocks.items() if count != 0}
