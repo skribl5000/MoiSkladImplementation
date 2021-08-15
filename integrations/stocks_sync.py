@@ -1,14 +1,14 @@
 import os
 from collections import defaultdict
 
-from pymyskald import get_ms_stocks_by_store_id, MSDict, get_barcode_meta
+from pymyskald import get_ms_stocks_by_store_meta, MSDict, get_barcode_meta
 from pywb import WBConnector
 from datetime import datetime, timedelta
 from tqdm import tqdm
 import json
 
 
-def generate_losses_data(losses_dict: dict, config, token):
+def generate_losses_data(losses_dict: dict, config, token, store_meta):
     positions = []
     for barcode, quantity in tqdm(losses_dict.items()):
         position_meta = get_barcode_meta(barcode, token)
@@ -22,7 +22,7 @@ def generate_losses_data(losses_dict: dict, config, token):
 
     request_data = {
         "store": {
-            "meta": config['MS_WAREHOUSES']['WB_FBO']
+            "meta": store_meta
         },
         "organization": {
             "meta": config['ORGANIZATIONS']['DEFAULT']
@@ -32,9 +32,9 @@ def generate_losses_data(losses_dict: dict, config, token):
     return request_data
 
 
-def generate_supplies_data(supplies_dict: dict, config, token):
+def generate_supplies_data(supplies_dict: dict, config, token, store_meta):
     positions = []
-    counter=0
+    counter = 0
     for barcode, quantity in tqdm(supplies_dict.items()):
         counter += 1
         if counter > 500:
@@ -64,7 +64,7 @@ def generate_supplies_data(supplies_dict: dict, config, token):
             "meta": config['AGENTS']['WBAgent']
         },
         "store": {
-            "meta": config['MS_WAREHOUSES']['WB_FBO']
+            "meta": store_meta
         },
         "positions": positions
     }
@@ -90,42 +90,50 @@ if __name__ == '__main__':
     wb_token_64 = os.getenv('WB_TOKEN_64')
     with open('config.json') as config_file:
         config = json.loads(config_file.read())
-
-    WB_FBO_STORE_ID = config['MS_WAREHOUSES']['WB_FBO']['href'].split('/')[-1]
+    store_dict = MSDict('store', ms_token)
 
     wb_connector = WBConnector(wb_token_64, 'stocks')
 
     print('Read WB data...')
     wb_stocks_df = wb_connector.get_data_df(get_reporting_date_by_gap()).fillna('')
     wb_stocks_df = wb_stocks_df[wb_stocks_df['barcode'] != '']
-    wb_stocks = wb_stocks_df.groupby('barcode').agg({'quantity': 'sum'})['quantity'].to_dict()
-    wb_stocks = defaultdict(int, wb_stocks)
+    for store in wb_stocks_df['warehouseName'].unique():
+        print('STORE:', store)
+        wb_stocks_store_df = wb_stocks_df[wb_stocks_df['warehouseName'] == store]
 
-    print('Read MS Data...')
-    ms_stocks = get_ms_stocks_by_store_id(WB_FBO_STORE_ID, ms_token)
-    ms_stocks = defaultdict(int, ms_stocks)
+        wb_stocks = wb_stocks_store_df.groupby('barcode').agg({'quantity': 'sum'})['quantity'].to_dict()
+        wb_stocks = defaultdict(int, wb_stocks)
 
-    print('Calculate corrections...')
-    all_barcodes = set(ms_stocks.keys()) | set(wb_stocks.keys())
-    compare_dict = {
-        barcode: wb_stocks[barcode] - ms_stocks[barcode]
-        for barcode in all_barcodes
-    }
+        print('Read MS Data...')
+        store_object = store_dict.strict_search_by_field_value('name', f'[WB] {store}')
+        if store_object is None:
+            print(store, 'Not found')
+            continue
+        else:
+            store_meta = store_object['meta']
 
-    supplies = {barcode: difference for barcode, difference in compare_dict.items() if difference > 0}
-    losses = {barcode: difference for barcode, difference in compare_dict.items() if difference < 0}
+        ms_stocks = get_ms_stocks_by_store_meta(store_meta, ms_token)
+        ms_stocks = defaultdict(int, ms_stocks)
 
-    print('Generating supply request')
-    supplies_data = generate_supplies_data(supplies, config, ms_token)
-    print('Generating losses request')
-    losses_data = generate_losses_data(losses, config, ms_token)
+        all_barcodes = set(ms_stocks.keys()) | set(wb_stocks.keys())
+        compare_dict = {
+            barcode: wb_stocks[barcode] - ms_stocks[barcode]
+            for barcode in all_barcodes
+        }
 
-    supply_ms_dict = MSDict('supply', ms_token)
-    losses_ms_dict = MSDict('loss', ms_token)
+        supplies = {barcode: difference for barcode, difference in compare_dict.items() if difference > 0}
+        losses = {barcode: difference for barcode, difference in compare_dict.items() if difference < 0}
 
-    print('Pushing corrections...')
-    result_supplies = supply_ms_dict.create(supplies_data)
-    result_loses = losses_ms_dict.create(losses_data)
+        print('Generating supply request')
+        supplies_data = generate_supplies_data(supplies, config, ms_token, store_meta)
+        print('Generating losses request')
+        losses_data = generate_losses_data(losses, config, ms_token, store_meta)
 
-    print(f'Incomes result:',  result_supplies)
-    print(f'Losses result:', result_loses.status_code)
+        supply_ms_dict = MSDict('supply', ms_token)
+        losses_ms_dict = MSDict('loss', ms_token)
+        if len(supplies_data['positions']) > 0:
+            result_supplies = supply_ms_dict.create(supplies_data)
+            print(f'Incomes result:', result_supplies)
+        if len(losses_data['positions']) > 0:
+            result_loses = losses_ms_dict.create(losses_data)
+            print(f'Losses result:', result_loses.status_code)

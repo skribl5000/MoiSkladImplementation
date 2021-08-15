@@ -24,14 +24,14 @@ def get_reporting_date_by_gap(days: int = 90) -> str:
     return reporting_date_from.strftime(DATE_PATTERN)
 
 
-reporting_date = get_reporting_date_by_gap(3)
+reporting_date = get_reporting_date_by_gap(0)
 
 sales = WBConnector(wb_token_64, 'sales')
 df_sales = sales.get_data_df(reporting_date)
 df_sales['date'] = df_sales['date'].apply(lambda x: x.replace('T', ' ') + '.000')
 
 
-def get_return_request_data(row, config, token):
+def get_return_request_data(row, config, token, store_meta):
     product_meta = get_barcode_meta(row['barcode'], token)
     if product_meta is None:
         return
@@ -46,13 +46,7 @@ def get_return_request_data(row, config, token):
             "meta": config['ORGANIZATIONS']['DEFAULT']
         },
         "store": {
-            "meta": {
-                "href": "https://online.moysklad.ru/api/remap/1.2/entity/store/96fc2b3f-5905-11eb-0a80-050f00464994",
-                "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/store/metadata",
-                "type": "store",
-                "mediaType": "application/json",
-                "uuidHref": "https://online.moysklad.ru/app/#warehouse/edit?id=96fc2b3f-5905-11eb-0a80-050f00464994"
-            }
+            "meta": store_meta
         },
         "agent": {
             "meta": config['AGENTS']['WBAgent']
@@ -71,7 +65,8 @@ def get_return_request_data(row, config, token):
     }
     return request_data
 
-def get_request_data_for_sale(sale_row, config, token):
+
+def get_request_data_for_sale(sale_row, config, token, store_meta):
     product_meta = get_barcode_meta(sale_row['barcode'], token)
     if product_meta is None:
         return
@@ -82,7 +77,7 @@ def get_request_data_for_sale(sale_row, config, token):
             "meta": config['ORGANIZATIONS']['DEFAULT']
         },
         "store": {
-            "meta": config['WAREHOUSES']['WB_FBO']
+            "meta": store_meta
         },
         "agent": {
             "meta": config['AGENTS']['WBAgent']
@@ -113,22 +108,31 @@ exists_returns = MSDict('salesreturn', token=ms_token).get_all_codes()
 df_sales = df_sales[(~df_sales['saleID'].isin(exists_sales))&(~df_sales['saleID'].isin(exists_returns))]
 
 error_barcodes = set()
-for index, row in df_sales.iterrows():
-    headers = {'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
+for store in df_sales['warehouseName'].unique():
+    store_name = f'[WB] {store}'
+    stores = requests.get(f'https://online.moysklad.ru/api/remap/1.2/entity/store?filter=name={store_name}',
+                              headers={'Authorization': f'Basic {ms_token}'}).json()['rows']
+    if len(stores) == 0:
+        print(f'Склад {store_name} не найден')
+        continue
+    store_meta = stores[0]['meta']
 
-    if ('R' in row['saleID'] or 'D' in row['saleID']) and int(row['quantity']) < 0:
-        request_data = get_return_request_data(row, config, ms_token)
-        request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/salesreturn'
-        r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
-    elif 'S' in row['saleID'] and int(row['quantity']) > 0:
-        request_data = get_request_data_for_sale(row, config, ms_token)
-        request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/demand'
-        r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
-    else:
-        r = None
+    for index, row in df_sales.iterrows():
+        headers = {'Authorization': f'Basic {ms_token}', 'Content-Type': 'application/json'}
 
-    if r.status_code != 200:
-        error_barcodes.add(row['barcode'])
+        if ('R' in row['saleID'] or 'D' in row['saleID']) and int(row['quantity']) < 0:
+            request_data = get_return_request_data(row, config, ms_token, store_meta)
+            request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/salesreturn'
+            r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
+        elif 'S' in row['saleID'] and int(row['quantity']) > 0:
+            request_data = get_request_data_for_sale(row, config, ms_token, store_meta)
+            request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/demand'
+            r = requests.post(request_url, headers=headers, data=json.dumps(request_data))
+        else:
+            r = None
+
+        if r.status_code != 200:
+            error_barcodes.add(row['barcode'])
 
 print('Barcodes was not found:')
 for barcode in error_barcodes:

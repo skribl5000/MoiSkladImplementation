@@ -195,6 +195,13 @@ class MSDict:
                           json=request_data)
         return r
 
+    def strict_search_by_field_value(self, field, value):
+        items = requests.get(f'https://online.moysklad.ru/api/remap/1.2/entity/store?filter={field}={value}',
+                                  headers={'Authorization': self.auth}).json()['rows']
+        if len(items) == 0:
+            return
+        return items[0]
+
 
 class MSAttributesList(MSDict):
     def __init__(self, dict_name, token):
@@ -474,6 +481,7 @@ def get_item_by_barcode_id(barcode, token):
     return None
 
 
+@lru_cache(10000)
 def get_barcode_meta(barcode, token):
     item = get_item_by_barcode_id(barcode, token)
     if item is None:
@@ -482,7 +490,9 @@ def get_barcode_meta(barcode, token):
     meta = item.get('meta')
     return meta
 
-def get_ms_stocks_by_store_id(store_id, ms_token):
+
+def get_ms_stocks_by_store_meta(store_meta, ms_token):
+    store_id = store_meta['href'].split('/')[-1]
     def get_stock_from_data(data):
         count = data['stockByStore'][0]['stock']
         product_meta = data['meta']['href']
