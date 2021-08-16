@@ -34,11 +34,7 @@ def generate_losses_data(losses_dict: dict, config, token, store_meta):
 
 def generate_supplies_data(supplies_dict: dict, config, token, store_meta):
     positions = []
-    counter = 0
     for barcode, quantity in tqdm(supplies_dict.items()):
-        counter += 1
-        if counter > 500:
-            break
 
         position_meta = get_barcode_meta(barcode, token)
 
@@ -88,7 +84,7 @@ if __name__ == '__main__':
     print('Sync started...')
     ms_token = os.getenv('MS_TOKEN')
     wb_token_64 = os.getenv('WB_TOKEN_64')
-    with open('config.json') as config_file:
+    with open('../config.json') as config_file:
         config = json.loads(config_file.read())
     store_dict = MSDict('store', ms_token)
 
@@ -132,8 +128,25 @@ if __name__ == '__main__':
         supply_ms_dict = MSDict('supply', ms_token)
         losses_ms_dict = MSDict('loss', ms_token)
         if len(supplies_data['positions']) > 0:
-            result_supplies = supply_ms_dict.create(supplies_data)
-            print(f'Incomes result:', result_supplies)
+            if len(supplies_data['positions']) < 500:
+                result_supplies = supply_ms_dict.create(supplies_data)
+            if len(supplies_data['positions']) >= 500:
+                data = supplies_data.copy()
+                data['positions'] = data['positions'][:500]
+                result_supplies = supply_ms_dict.create(data)
+                print(f'Incomes result:', result_supplies)
+
+                data = supplies_data.copy()
+                data['positions'] = data['positions'][500:1000]
+                result_supplies = supply_ms_dict.create(data)
+                print(f'Incomes result:', result_supplies)
+
+                if len(supplies_data['positions']) > 1000:
+                    data = supplies_data.copy()
+                    data['positions'] = data['positions'][1000:1500]
+                    result_supplies = supply_ms_dict.create(data)
+                    print(f'Incomes result:', result_supplies)
+
         if len(losses_data['positions']) > 0:
             result_loses = losses_ms_dict.create(losses_data)
             print(f'Losses result:', result_loses.status_code)
