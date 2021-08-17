@@ -184,7 +184,7 @@ class MSDict:
             r = requests.get(f'{self.URL}?limit={batch_size}&offset={total}',
                              headers={'Authorization': self.auth})
             response_data = r.json()
-            codes += [item['code'] for item in response_data.json().get('rows', [])]
+            codes += [item['code'] for item in response_data.get('rows', [])]
             total += batch_size
 
         return codes
