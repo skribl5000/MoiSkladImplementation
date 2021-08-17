@@ -178,7 +178,7 @@ class MSDict:
         size = response_data['meta']['size']
         total = batch_size
 
-        codes = [item['code'] for item in response_data.get('rows', [])]
+        codes = [item['code'] for item in list(filter(lambda item: 'code' in item, response_data.get('rows', [])))]
 
         while total < size:
             r = requests.get(f'{self.URL}?limit={batch_size}&offset={total}',
