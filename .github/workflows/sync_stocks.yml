@@ -1,4 +1,4 @@
-name: WB Sales integration
+name: Sync stocks integration
 
 on:
   schedule:
