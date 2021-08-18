@@ -68,7 +68,7 @@ def generate_supplies_data(supplies_dict: dict, config, token, store_meta):
 
 
 def get_reporting_date_by_gap(days: int = 90) -> str:
-    MAX_DAYS = 90
+    MAX_DAYS = 365
     DATE_PATTERN = '%Y-%m-%d'
 
     if days > MAX_DAYS:
@@ -91,13 +91,13 @@ if __name__ == '__main__':
     wb_connector = WBConnector(wb_token_64, 'stocks')
 
     print('Read WB data...')
-    wb_stocks_df = wb_connector.get_data_df(get_reporting_date_by_gap()).fillna('')
+    wb_stocks_df = wb_connector.get_data_df(get_reporting_date_by_gap(365)).fillna('')
     wb_stocks_df = wb_stocks_df[wb_stocks_df['barcode'] != '']
     for store in wb_stocks_df['warehouseName'].unique():
         print('STORE:', store)
         wb_stocks_store_df = wb_stocks_df[wb_stocks_df['warehouseName'] == store]
 
-        wb_stocks = wb_stocks_store_df.groupby('barcode').agg({'quantity': 'sum'})['quantity'].to_dict()
+        wb_stocks = wb_stocks_store_df.groupby('barcode').agg({'quantityNotInOrders': 'sum'})['quantityNotInOrders'].to_dict()
         wb_stocks = defaultdict(int, wb_stocks)
 
         print('Read MS Data...')

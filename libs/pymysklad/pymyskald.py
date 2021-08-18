@@ -498,7 +498,10 @@ def get_ms_stocks_by_store_meta(store_meta, ms_token):
         product_meta = data['meta']['href']
         r = requests.get(product_meta, headers=ms_headers)
         product_data = r.json()
-        code = product_data['code']
+        try:
+            code = product_data['code']
+        except:
+            print(r.json())
         if 'base' in code:
             print('base item')
             return None
