@@ -131,7 +131,7 @@ for store in df_sales['warehouseName'].unique():
         else:
             r = None
 
-        if r.status_code != 200:
+        if r.status_code != 200 or r is None:
             error_barcodes.add(row['barcode'])
 
 print('Barcodes was not found:')
