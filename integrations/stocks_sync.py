@@ -84,7 +84,7 @@ if __name__ == '__main__':
     print('Sync started...')
     ms_token = os.getenv('MS_TOKEN')
     wb_token_64 = os.getenv('WB_TOKEN_64')
-    with open('../config.json') as config_file:
+    with open('config.json') as config_file:
         config = json.loads(config_file.read())
     store_dict = MSDict('store', ms_token)
 
