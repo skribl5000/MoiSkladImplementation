@@ -3,7 +3,7 @@ name: Sync stocks integration
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '0 0 * * 4'
+    - cron:  '0 1 * * 4'
 
 jobs:
   build:
@@ -30,4 +30,4 @@ jobs:
       env:
         MS_TOKEN: ${{ secrets.MS_TOKEN }}
         WB_TOKEN_64: ${{ secrets.WB_TOKEN_64 }}
-      run: python ./integrations/sync_stocks.py
+      run: python ./integrations/stocks_sync.py
