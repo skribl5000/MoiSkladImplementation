@@ -257,7 +257,7 @@ def main():
             if r.status_code != 200:
                 print(r.json())
         except Exception as e:
-
+            print(row)
             print(str(e))
             error_rows.append(row)
 
@@ -288,6 +288,7 @@ def main():
                 if product_meta is None:
                     print(f'Product meta is None у {row["Артикул цвета"]}. Предмет не создан')
                 else:
+                    print(row)
                     raise Exception(str(r.json()))
 
 if __name__ == "__main__":
