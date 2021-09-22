@@ -292,36 +292,40 @@ class MSUserDict:
 
 def get_all_single_product_codes(auth) -> list:
     codes = []
+    BATCH_SIZE = 500
+
     request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/product'
     headers = {'Authorization': auth}
-    response = requests.get(request_url, headers=headers)
+    response = requests.get(f'{request_url}?limit=1', headers=headers)
 
-    products = response.json().get('rows', None)
-    if products is None:
-        return []
+    size = response.json()['meta']['size']
+    for offset in range(0, size, BATCH_SIZE):
+        response = requests.get(f'{request_url}?limit={BATCH_SIZE}&offset={offset}', headers=headers)
+        products = response.json().get('rows', None)
+        if products is None:
+            return []
 
-    for product in products:
-        if product.get('variantsCount', 0) == 0:
-            codes.append(product['code'])
+        codes += [product['code'] for product in products if product.get('variantsCount', 0) == 0]
+
     return codes
 
 
 def get_all_product_codes(auth) -> list:
     BATCH_SIZE = 500
-    offset = 0
     codes = []
     request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/product'
     response = requests.get(f'{request_url}?limit=1', headers={'Authorization': auth})
     size = response.json()['meta']['size']
 
-    for i in range(0, size, BATCH_SIZE):
+    for offset in range(0, size, BATCH_SIZE):
         url = f'{request_url}?limit={BATCH_SIZE}&offset={offset}'
-        offset += BATCH_SIZE
         response = requests.get(url, headers={'Authorization': auth})
         products = response.json().get('rows', None)
-        codes += [product['code'] for product in products]
         if products is None:
             break
+
+        codes += [product['code'] for product in products]
+
 
     return codes
 
@@ -547,3 +551,4 @@ def get_ms_stocks_by_store_meta(store_meta, ms_token):
             ms_stocks = {**ms_stocks, **stock}
 
     return {barcode: count for barcode, count in ms_stocks.items() if count != 0}
+
