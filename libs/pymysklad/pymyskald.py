@@ -307,16 +307,22 @@ def get_all_single_product_codes(auth) -> list:
 
 
 def get_all_product_codes(auth) -> list:
+    BATCH_SIZE = 500
+    offset = 0
     codes = []
-    request_url = 'https://online.moysklad.ru/api/remap/1.2/entity/product'
-    response = requests.get(request_url, headers={'Authorization': auth})
+    request_url = f'https://online.moysklad.ru/api/remap/1.2/entity/product'
+    response = requests.get(f'{request_url}?limit=1', headers={'Authorization': auth})
+    size = response.json()['meta']['size']
 
-    products = response.json().get('rows', None)
-    if products is None:
-        return []
+    for i in range(0, size, BATCH_SIZE):
+        url = f'{request_url}?limit={BATCH_SIZE}&offset={offset}'
+        offset += BATCH_SIZE
+        response = requests.get(url, headers={'Authorization': auth})
+        products = response.json().get('rows', None)
+        codes += [product['code'] for product in products]
+        if products is None:
+            break
 
-    for product in products:
-        codes.append(product['code'])
     return codes
 
 
